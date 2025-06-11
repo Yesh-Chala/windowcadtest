@@ -60,7 +60,7 @@
     
 </head>
 <body>
-    <button id="windowCADdesignButton">Get a free quote</button>
+    <button id="windowCADdesignButton">Save Quote</button>
     <div id="windowCADdesigner">
         <div>
             <iframe id="windowCADiFrame" src="https://www.windowsoftware.co.uk/windowcad7/?interface=retail&username=yeshchala&product=78fd248b-f556-4269-8149-cbeb2e2e6afd"></iframe>
@@ -77,12 +77,65 @@
         const windowCADcloseButton = document.getElementById(
             "windowCADcloseButton"
         );
+        const windowCADiFrame = document.getElementById("windowCADiFrame");
     
         windowCADdesignButton.addEventListener("click", () => {
             windowCADdesigner.style.display = "block";
         });
+        
         windowCADcloseButton.addEventListener("click", () => {
             windowCADdesigner.style.display = "";
+        });
+
+        // Listen for messages from the WindowCAD iframe
+        window.addEventListener("message", e => {
+            if (e && e.data && e.data.isWindowCAD && e.data.appType === "Retail") {
+                console.log('WindowCAD data received:', e.data);
+                
+                if (e.data.pdfBlob) {
+                    console.log('PDF Blob received:', e.data.pdfBlob);
+                    // Create a download link for the PDF
+                    const pdfUrl = URL.createObjectURL(e.data.pdfBlob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = pdfUrl;
+                    downloadLink.download = 'window-design.pdf';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    URL.revokeObjectURL(pdfUrl);
+                    console.log('PDF download triggered');
+                }
+
+                if (e.data.projectJson) {
+                    console.log('Project JSON data:', e.data.projectJson);
+                    // Store in localStorage for later use
+                    localStorage.setItem('windowCADProject', JSON.stringify(e.data.projectJson));
+                    console.log('Project data saved to localStorage');
+                }
+
+                if (e.data.userAgent) {
+                    console.log('User Agent:', e.data.userAgent);
+                }
+            }
+        });
+
+        // Function to send commands to WindowCAD
+        function sendToWindowCAD(command, data) {
+            windowCADiFrame.contentWindow.postMessage({
+                type: command,
+                data: data
+            }, "https://www.windowsoftware.co.uk");
+        }
+
+        // Example of how to trigger a save quote action
+        windowCADdesignButton.addEventListener("click", () => {
+            if (windowCADdesigner.style.display === "block") {
+                // If the designer is already open, trigger save quote
+                sendToWindowCAD('saveQuote', {});
+            } else {
+                // If the designer is closed, open it
+                windowCADdesigner.style.display = "block";
+            }
         });
     </script>
 </body>
