@@ -8,19 +8,19 @@
         #windowCADdesigner {
             display: none;
             position: fixed;
-            top: 0;
-            right: 0;
             bottom: 0;
             left: 0;
+            right: 0;
+            height: 70vh; /* Takes up 70% of the viewport height */
+            background: white;
+            z-index: 1000;
         }
     
         #windowCADdesigner > div {
-            position: absolute;
-            top: 3vw;
-            right: 3vw;
-            left: 3vw;
-            bottom: 3vw;
-            box-shadow: 0 25.6px 57.6px 0 rgba(0, 0, 0, 0.22), 0 4.8px 14.4px 0 rgba(0, 0, 0, 0.18);
+            position: relative;
+            height: 100%;
+            width: 100%;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
         }
     
         #windowCADiFrame {
@@ -35,9 +35,10 @@
         }
     
         #windowCADcloseButton {
-            position: fixed;
-            top: max(0px, calc(3vw - 20px));
-            right: max(0px, calc(3vw - 20px));
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
         }
     
         #windowCADcloseButton path {
