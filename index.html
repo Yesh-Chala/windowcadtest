@@ -63,7 +63,7 @@
    <button id="windowCADdesignButton">Save Quote</button>
    <div id="windowCADdesigner">
        <div>
-           <iframe id="windowCADiFrame" src="https://www.windowsoftware.co.uk/windowcad7/?interface=retail&username=moliwindows&"></iframe>
+                       <iframe id="windowCADiFrame" src="https://www.windowsoftware.co.uk/windowcad7/?interface=retail&username=moliwindows"></iframe>
            <svg id="windowCADcloseButton" width="40" height="40">
                <path d="M38.5,20 A18.5,18.5 0 1 1 38.5,19.99 Z M29,11 11,29 M11,11 29,29"></path>
            </svg>
@@ -143,73 +143,157 @@
                data: data
            }, "https://www.windowsoftware.co.uk");
        }
-       function extractImportantDetails(projectJson) {
-           const parsed = {};
+               function extractImportantDetails(projectJson) {
+            const parsed = {
+                project: {},
+                bays: [],
+                pricing: {},
+                totals: {}
+            };
 
+            // Project-level information
+            parsed.project = {
+                version: projectJson?.version || 'Unknown',
+                createdDate: projectJson?.createdDate || null,
+                modifiedDate: projectJson?.modifiedDate || null,
+                status: projectJson?.statusName || 'Unknown',
+                includeInstallation: projectJson?.includeInstallation || false,
+                taxName: projectJson?.taxName || 'No tax info',
+                taxPercent: projectJson?.taxPercent || 0
+            };
 
-           // Frame Type and Configuration
-           parsed.frameType = projectJson?.frameType || projectJson?.frame_type || 'Unknown';
-           parsed.paneConfiguration = projectJson?.paneConfig || projectJson?.pane_configuration || 'Unknown';
+            // Process each bay (main products)
+            if (projectJson?.bays && Array.isArray(projectJson.bays)) {
+                projectJson.bays.forEach((bay, bayIndex) => {
+                    const bayData = {
+                        bayIndex: bayIndex,
+                        name: bay.infoProperties?.[0]?.value || 'Unnamed',
+                        quantity: bay.quantity || 1,
+                        price: bay.price || 0,
+                        frames: []
+                    };
 
+                    // Process frame collections (dimensions and frame details)
+                    if (bay.frameCollections && Array.isArray(bay.frameCollections)) {
+                        bay.frameCollections.forEach(collection => {
+                            const frameCollection = {
+                                dimensions: {
+                                    width: collection.width || 0,
+                                    height: collection.height || 0,
+                                    segmentLength: collection.segmentLength || 0
+                                }
+                            };
 
-           // Dimensions (width x height)
-           if (projectJson?.width && projectJson?.height) {
-               parsed.dimensions = {
-                   width: parseInt(projectJson.width),
-                   height: parseInt(projectJson.height)
-               };
-           } else if (projectJson?.dimensions) {
-               const match = projectJson.dimensions.match(/(\d+)\s*x\s*(\d+)/);
-               if (match) {
-                   parsed.dimensions = {
-                       width: parseInt(match[1]),
-                       height: parseInt(match[2])
-                   };
-               }
-           }
+                            // Process individual frames
+                            if (collection.frames && Array.isArray(collection.frames)) {
+                                collection.frames.forEach(frame => {
+                                    const frameData = {
+                                        productKey: frame.productKey || '',
+                                        product: frame.product || 'Unknown Product',
+                                        frameStyle: frame.frameStyle || 'Unknown Style',
+                                        dimensions: {
+                                            width: frame.width || 0,
+                                            height: frame.height || 0
+                                        },
+                                        columns: [],
+                                        apertures: []
+                                    };
 
+                                    // Extract column widths
+                                    if (frame.columnDefinitions) {
+                                        frameData.columns = frame.columnDefinitions.map(col => col.width || 0);
+                                    }
 
-           // Finishes
-           parsed.externalFinish = projectJson?.externalFinish || 'Unknown';
-           parsed.internalFinish = projectJson?.internalFinish || 'Unknown';
+                                    // Process apertures (doors/windows with glazing and hardware)
+                                    if (frame.apertures && Array.isArray(frame.apertures)) {
+                                        frame.apertures.forEach(aperture => {
+                                            const apertureData = {
+                                                productType: aperture.productType || 'Unknown',
+                                                productKey: aperture.productKey || '',
+                                                product: aperture.product || 'Unknown',
+                                                glazing: {},
+                                                hardware: [],
+                                                sashFrames: []
+                                            };
 
+                                            // Process sash frames (individual door/window panels)
+                                            if (aperture.sashFrames && Array.isArray(aperture.sashFrames)) {
+                                                aperture.sashFrames.forEach(sash => {
+                                                    const sashData = {
+                                                        columnSpan: sash.columnSpan || 1,
+                                                        hanging: sash.hanging || 'Unknown',
+                                                        hangingType: sash.hangingType || 'Unknown',
+                                                        glazing: {},
+                                                        hardware: []
+                                                    };
 
-           // Glazing
-           parsed.glazing = {
-               type: projectJson?.glazingType || 'Unknown',
-               details: projectJson?.glazingDetails || projectJson?.glazing || 'Unknown'
-           };
+                                                    // Extract glazing information
+                                                    if (sash.apertures && sash.apertures[0]?.glazing) {
+                                                        const glazing = sash.apertures[0].glazing;
+                                                        sashData.glazing = {
+                                                            spacerBar: glazing.spacerBar || 'Unknown',
+                                                            spacerBarKey: glazing.spacerBarKey || '',
+                                                            product: sash.apertures[0].product || 'Unknown Glass'
+                                                        };
+                                                    }
 
+                                                    // Extract hardware information
+                                                    if (sash.hardware && Array.isArray(sash.hardware)) {
+                                                        sash.hardware.forEach(hw => {
+                                                            sashData.hardware.push({
+                                                                type: hw.type || 'Unknown',
+                                                                style: hw.style || 'Unknown',
+                                                                colour: hw.colour || 'Unknown',
+                                                                side: hw.side || 'Unknown'
+                                                            });
+                                                        });
+                                                    }
 
-           // Hardware
-           parsed.hardware = {
-               cylinder: projectJson?.cylinder || 'Standard',
-               material: projectJson?.cylinderMaterial || 'Stainless steel',
-               handle: {
-                   type: projectJson?.handleType || 'Ergonomic Lever',
-                   finish: projectJson?.handleFinish || 'Satin stainless steel'
-               }
-           };
+                                                    apertureData.sashFrames.push(sashData);
+                                                });
+                                            }
 
+                                            frameData.apertures.push(apertureData);
+                                        });
+                                    }
 
-           // Pricing
-           parsed.pricing = {
-               itemPrice: parseFloat(projectJson?.price || 0),
-               deposit: parseFloat(projectJson?.deposit || 0),
-               balanceDue: parseFloat(projectJson?.balance || 0)
-           };
+                                    frameCollection.frame = frameData;
+                                });
+                            }
 
+                            bayData.frames.push(frameCollection);
+                        });
+                    }
 
-           // Features & Tags
-           parsed.features = [];
-           if (projectJson?.nfrcRated) parsed.features.push("NFRC Rated");
-           if (projectJson?.temperedGlass) parsed.features.push("Tempered Glass");
-           if (projectJson?.doubleLowE) parsed.features.push("Double Low-E Glass");
-           if (projectJson?.germanHardware) parsed.features.push("German Hardware");
+                    parsed.bays.push(bayData);
+                });
+            }
 
+            // Extract pricing totals
+            parsed.pricing = {
+                totalPrice: projectJson?.price || 0,
+                taxPercent: projectJson?.taxPercent || 0,
+                includeInstallation: projectJson?.includeInstallation || false
+            };
 
-           return parsed;
-       }
+            // Calculate totals
+            let itemTotal = 0;
+            let totalQuantity = 0;
+            
+            parsed.bays.forEach(bay => {
+                itemTotal += (bay.price || 0) * (bay.quantity || 0);
+                totalQuantity += bay.quantity || 0;
+            });
+
+            parsed.totals = {
+                itemTotal: itemTotal,
+                totalQuantity: totalQuantity,
+                tax: itemTotal * (parsed.pricing.taxPercent / 100),
+                grandTotal: itemTotal + (itemTotal * (parsed.pricing.taxPercent / 100))
+            };
+
+            return parsed;
+        }
 
 
 
