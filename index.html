@@ -108,10 +108,19 @@
 
                 if (e.data.projectJson) {
                     console.log('Project JSON data:', e.data.projectJson);
-                    // Store in localStorage for later use
+
+                    // Store raw
                     localStorage.setItem('windowCADProject', JSON.stringify(e.data.projectJson));
                     console.log('Project data saved to localStorage');
+
+                    // Extract and log cleaned version
+                    const cleanedData = extractImportantDetails(e.data.projectJson);
+                    console.log('Parsed Important Quote Data:', cleanedData);
+
+                    // Optional: Save that too
+                    localStorage.setItem('parsedQuote', JSON.stringify(cleanedData));
                 }
+
 
                 if (e.data.userAgent) {
                     console.log('User Agent:', e.data.userAgent);
@@ -126,6 +135,66 @@
                 data: data
             }, "https://www.windowsoftware.co.uk");
         }
+        function extractImportantDetails(projectJson) {
+            const parsed = {};
+
+            // Frame Type and Configuration
+            parsed.frameType = projectJson?.frameType || projectJson?.frame_type || 'Unknown';
+            parsed.paneConfiguration = projectJson?.paneConfig || projectJson?.pane_configuration || 'Unknown';
+
+            // Dimensions (width x height)
+            if (projectJson?.width && projectJson?.height) {
+                parsed.dimensions = {
+                    width: parseInt(projectJson.width),
+                    height: parseInt(projectJson.height)
+                };
+            } else if (projectJson?.dimensions) {
+                const match = projectJson.dimensions.match(/(\d+)\s*x\s*(\d+)/);
+                if (match) {
+                    parsed.dimensions = {
+                        width: parseInt(match[1]),
+                        height: parseInt(match[2])
+                    };
+                }
+            }
+
+            // Finishes
+            parsed.externalFinish = projectJson?.externalFinish || 'Unknown';
+            parsed.internalFinish = projectJson?.internalFinish || 'Unknown';
+
+            // Glazing
+            parsed.glazing = {
+                type: projectJson?.glazingType || 'Unknown',
+                details: projectJson?.glazingDetails || projectJson?.glazing || 'Unknown'
+            };
+
+            // Hardware
+            parsed.hardware = {
+                cylinder: projectJson?.cylinder || 'Standard',
+                material: projectJson?.cylinderMaterial || 'Stainless steel',
+                handle: {
+                    type: projectJson?.handleType || 'Ergonomic Lever',
+                    finish: projectJson?.handleFinish || 'Satin stainless steel'
+                }
+            };
+
+            // Pricing
+            parsed.pricing = {
+                itemPrice: parseFloat(projectJson?.price || 0),
+                deposit: parseFloat(projectJson?.deposit || 0),
+                balanceDue: parseFloat(projectJson?.balance || 0)
+            };
+
+            // Features & Tags
+            parsed.features = [];
+            if (projectJson?.nfrcRated) parsed.features.push("NFRC Rated");
+            if (projectJson?.temperedGlass) parsed.features.push("Tempered Glass");
+            if (projectJson?.doubleLowE) parsed.features.push("Double Low-E Glass");
+            if (projectJson?.germanHardware) parsed.features.push("German Hardware");
+
+            return parsed;
+        }
+
 
         // Example of how to trigger a save quote action
         windowCADdesignButton.addEventListener("click", () => {
