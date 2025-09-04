@@ -1,211 +1,230 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-        #windowCADdesigner {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 70vh; /* Takes up 70% of the viewport height */
-            background: white;
-            z-index: 1000;
-        }
-    
-        #windowCADdesigner > div {
-            position: relative;
-            height: 100%;
-            width: 100%;
-            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
-        }
-    
-        #windowCADiFrame {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-            margin: 0;
-            padding: 0;
-        }
-    
-        #windowCADcloseButton {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1001;
-        }
-    
-        #windowCADcloseButton path {
-            fill: #ddd;
-            stroke: #000;
-            stroke-width: 3px;
-            cursor: pointer;
-        }
-    
-        #windowCADcloseButton path:hover {
-            fill: #bbb;
-        }
-    
-        #windowCADcloseButton path:active {
-            fill: #333;
-            stroke: #bbb;
-        }
-    </style>
-    
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Document</title>
+   <style>
+       #windowCADdesigner {
+           display: none;
+           position: fixed;
+           bottom: 0;
+           left: 0;
+           right: 0;
+           height: 70vh; /* Takes up 70% of the viewport height */
+           background: white;
+           z-index: 1000;
+       }
+  
+       #windowCADdesigner > div {
+           position: relative;
+           height: 100%;
+           width: 100%;
+           box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.1);
+       }
+  
+       #windowCADiFrame {
+           position: absolute;
+           top: 0;
+           left: 0;
+           width: 100%;
+           height: 100%;
+           border: none;
+           margin: 0;
+           padding: 0;
+       }
+  
+       #windowCADcloseButton {
+           position: absolute;
+           top: 10px;
+           right: 10px;
+           z-index: 1001;
+       }
+  
+       #windowCADcloseButton path {
+           fill: #ddd;
+           stroke: #000;
+           stroke-width: 3px;
+           cursor: pointer;
+       }
+  
+       #windowCADcloseButton path:hover {
+           fill: #bbb;
+       }
+  
+       #windowCADcloseButton path:active {
+           fill: #333;
+           stroke: #bbb;
+       }
+   </style>
+  
 </head>
 <body>
-    <button id="windowCADdesignButton">Save Quote</button>
-    <div id="windowCADdesigner">
-        <div>
-            <iframe id="windowCADiFrame" src="https://www.windowsoftware.co.uk/windowcad7/?interface=retail&username=moliwindows&"></iframe>
-            <svg id="windowCADcloseButton" width="40" height="40">
-                <path d="M38.5,20 A18.5,18.5 0 1 1 38.5,19.99 Z M29,11 11,29 M11,11 29,29"></path>
-            </svg>
-        </div>
-    </div>
-    <script>
-        const windowCADdesignButton = document.getElementById(
-            "windowCADdesignButton"
-        );
-        const windowCADdesigner = document.getElementById("windowCADdesigner");
-        const windowCADcloseButton = document.getElementById(
-            "windowCADcloseButton"
-        );
-        const windowCADiFrame = document.getElementById("windowCADiFrame");
-    
-        windowCADdesignButton.addEventListener("click", () => {
-            windowCADdesigner.style.display = "block";
-        });
-        
-        windowCADcloseButton.addEventListener("click", () => {
-            windowCADdesigner.style.display = "";
-        });
-
-        // Listen for messages from the WindowCAD iframe
-        window.addEventListener("message", e => {
-            if (e && e.data && e.data.isWindowCAD && e.data.appType === "Retail") {
-                console.log('WindowCAD data received:', e.data);
-                
-                if (e.data.pdfBlob) {
-                    console.log('PDF Blob received:', e.data.pdfBlob);
-                    // Create a download link for the PDF
-                    const pdfUrl = URL.createObjectURL(e.data.pdfBlob);
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = pdfUrl;
-                    downloadLink.download = 'window-design.pdf';
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-                    URL.revokeObjectURL(pdfUrl);
-                    console.log('PDF download triggered');
-                }
-
-                if (e.data.projectJson) {
-                    console.log('Project JSON data:', e.data.projectJson);
-
-                    // Store raw
-                    localStorage.setItem('windowCADProject', JSON.stringify(e.data.projectJson));
-                    console.log('Project data saved to localStorage');
-
-                    // Extract and log cleaned version
-                    const cleanedData = extractImportantDetails(e.data.projectJson);
-                    console.log('Parsed Important Quote Data:', cleanedData);
-
-                    // Optional: Save that too
-                    localStorage.setItem('parsedQuote', JSON.stringify(cleanedData));
-                }
+   <button id="windowCADdesignButton">Save Quote</button>
+   <div id="windowCADdesigner">
+       <div>
+           <iframe id="windowCADiFrame" src="https://www.windowsoftware.co.uk/windowcad7/?interface=retail&username=moliwindows&"></iframe>
+           <svg id="windowCADcloseButton" width="40" height="40">
+               <path d="M38.5,20 A18.5,18.5 0 1 1 38.5,19.99 Z M29,11 11,29 M11,11 29,29"></path>
+           </svg>
+       </div>
+   </div>
+   <script>
+       const windowCADdesignButton = document.getElementById(
+           "windowCADdesignButton"
+       );
+       const windowCADdesigner = document.getElementById("windowCADdesigner");
+       const windowCADcloseButton = document.getElementById(
+           "windowCADcloseButton"
+       );
+       const windowCADiFrame = document.getElementById("windowCADiFrame");
+  
+       windowCADdesignButton.addEventListener("click", () => {
+           windowCADdesigner.style.display = "block";
+       });
+      
+       windowCADcloseButton.addEventListener("click", () => {
+           windowCADdesigner.style.display = "";
+       });
 
 
-                if (e.data.userAgent) {
-                    console.log('User Agent:', e.data.userAgent);
-                }
-            }
-        });
-
-        // Function to send commands to WindowCAD
-        function sendToWindowCAD(command, data) {
-            windowCADiFrame.contentWindow.postMessage({
-                type: command,
-                data: data
-            }, "https://www.windowsoftware.co.uk");
-        }
-        function extractImportantDetails(projectJson) {
-            const parsed = {};
-
-            // Frame Type and Configuration
-            parsed.frameType = projectJson?.frameType || projectJson?.frame_type || 'Unknown';
-            parsed.paneConfiguration = projectJson?.paneConfig || projectJson?.pane_configuration || 'Unknown';
-
-            // Dimensions (width x height)
-            if (projectJson?.width && projectJson?.height) {
-                parsed.dimensions = {
-                    width: parseInt(projectJson.width),
-                    height: parseInt(projectJson.height)
-                };
-            } else if (projectJson?.dimensions) {
-                const match = projectJson.dimensions.match(/(\d+)\s*x\s*(\d+)/);
-                if (match) {
-                    parsed.dimensions = {
-                        width: parseInt(match[1]),
-                        height: parseInt(match[2])
-                    };
-                }
-            }
-
-            // Finishes
-            parsed.externalFinish = projectJson?.externalFinish || 'Unknown';
-            parsed.internalFinish = projectJson?.internalFinish || 'Unknown';
-
-            // Glazing
-            parsed.glazing = {
-                type: projectJson?.glazingType || 'Unknown',
-                details: projectJson?.glazingDetails || projectJson?.glazing || 'Unknown'
-            };
-
-            // Hardware
-            parsed.hardware = {
-                cylinder: projectJson?.cylinder || 'Standard',
-                material: projectJson?.cylinderMaterial || 'Stainless steel',
-                handle: {
-                    type: projectJson?.handleType || 'Ergonomic Lever',
-                    finish: projectJson?.handleFinish || 'Satin stainless steel'
-                }
-            };
-
-            // Pricing
-            parsed.pricing = {
-                itemPrice: parseFloat(projectJson?.price || 0),
-                deposit: parseFloat(projectJson?.deposit || 0),
-                balanceDue: parseFloat(projectJson?.balance || 0)
-            };
-
-            // Features & Tags
-            parsed.features = [];
-            if (projectJson?.nfrcRated) parsed.features.push("NFRC Rated");
-            if (projectJson?.temperedGlass) parsed.features.push("Tempered Glass");
-            if (projectJson?.doubleLowE) parsed.features.push("Double Low-E Glass");
-            if (projectJson?.germanHardware) parsed.features.push("German Hardware");
-
-            return parsed;
-        }
+       // Listen for messages from the WindowCAD iframe
+       window.addEventListener("message", e => {
+           if (e && e.data && e.data.isWindowCAD && e.data.appType === "Retail") {
+               console.log('WindowCAD data received:', e.data);
+              
+               if (e.data.pdfBlob) {
+                   console.log('PDF Blob received:', e.data.pdfBlob);
+                   // Create a download link for the PDF
+                   const pdfUrl = URL.createObjectURL(e.data.pdfBlob);
+                   const downloadLink = document.createElement('a');
+                   downloadLink.href = pdfUrl;
+                   downloadLink.download = 'window-design.pdf';
+                   document.body.appendChild(downloadLink);
+                   downloadLink.click();
+                   document.body.removeChild(downloadLink);
+                   URL.revokeObjectURL(pdfUrl);
+                   console.log('PDF download triggered');
+               }
 
 
-        // Example of how to trigger a save quote action
-        windowCADdesignButton.addEventListener("click", () => {
-            if (windowCADdesigner.style.display === "block") {
-                // If the designer is already open, trigger save quote
-                sendToWindowCAD('saveQuote', {});
-            } else {
-                // If the designer is closed, open it
-                windowCADdesigner.style.display = "block";
-            }
-        });
-    </script>
+               if (e.data.projectJson) {
+                   console.log('Project JSON data:', e.data.projectJson);
+
+
+                   // Store raw
+                   localStorage.setItem('windowCADProject', JSON.stringify(e.data.projectJson));
+                   console.log('Project data saved to localStorage');
+
+
+                   // Extract and log cleaned version
+                   const cleanedData = extractImportantDetails(e.data.projectJson);
+                   console.log('Parsed Important Quote Data:', cleanedData);
+
+
+                   // Optional: Save that too
+                   localStorage.setItem('parsedQuote', JSON.stringify(cleanedData));
+               }
+
+
+
+
+               if (e.data.userAgent) {
+                   console.log('User Agent:', e.data.userAgent);
+               }
+           }
+       });
+
+
+       // Function to send commands to WindowCAD
+       function sendToWindowCAD(command, data) {
+           windowCADiFrame.contentWindow.postMessage({
+               type: command,
+               data: data
+           }, "https://www.windowsoftware.co.uk");
+       }
+       function extractImportantDetails(projectJson) {
+           const parsed = {};
+
+
+           // Frame Type and Configuration
+           parsed.frameType = projectJson?.frameType || projectJson?.frame_type || 'Unknown';
+           parsed.paneConfiguration = projectJson?.paneConfig || projectJson?.pane_configuration || 'Unknown';
+
+
+           // Dimensions (width x height)
+           if (projectJson?.width && projectJson?.height) {
+               parsed.dimensions = {
+                   width: parseInt(projectJson.width),
+                   height: parseInt(projectJson.height)
+               };
+           } else if (projectJson?.dimensions) {
+               const match = projectJson.dimensions.match(/(\d+)\s*x\s*(\d+)/);
+               if (match) {
+                   parsed.dimensions = {
+                       width: parseInt(match[1]),
+                       height: parseInt(match[2])
+                   };
+               }
+           }
+
+
+           // Finishes
+           parsed.externalFinish = projectJson?.externalFinish || 'Unknown';
+           parsed.internalFinish = projectJson?.internalFinish || 'Unknown';
+
+
+           // Glazing
+           parsed.glazing = {
+               type: projectJson?.glazingType || 'Unknown',
+               details: projectJson?.glazingDetails || projectJson?.glazing || 'Unknown'
+           };
+
+
+           // Hardware
+           parsed.hardware = {
+               cylinder: projectJson?.cylinder || 'Standard',
+               material: projectJson?.cylinderMaterial || 'Stainless steel',
+               handle: {
+                   type: projectJson?.handleType || 'Ergonomic Lever',
+                   finish: projectJson?.handleFinish || 'Satin stainless steel'
+               }
+           };
+
+
+           // Pricing
+           parsed.pricing = {
+               itemPrice: parseFloat(projectJson?.price || 0),
+               deposit: parseFloat(projectJson?.deposit || 0),
+               balanceDue: parseFloat(projectJson?.balance || 0)
+           };
+
+
+           // Features & Tags
+           parsed.features = [];
+           if (projectJson?.nfrcRated) parsed.features.push("NFRC Rated");
+           if (projectJson?.temperedGlass) parsed.features.push("Tempered Glass");
+           if (projectJson?.doubleLowE) parsed.features.push("Double Low-E Glass");
+           if (projectJson?.germanHardware) parsed.features.push("German Hardware");
+
+
+           return parsed;
+       }
+
+
+
+
+       // Example of how to trigger a save quote action
+       windowCADdesignButton.addEventListener("click", () => {
+           if (windowCADdesigner.style.display === "block") {
+               // If the designer is already open, trigger save quote
+               sendToWindowCAD('saveQuote', {});
+           } else {
+               // If the designer is closed, open it
+               windowCADdesigner.style.display = "block";
+           }
+       });
+   </script>
 </body>
 </html>
+
