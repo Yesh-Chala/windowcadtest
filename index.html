@@ -254,6 +254,9 @@
                         });
                     }
 
+                    // Add pricing calculation data
+                    item.pricingData = extractPricingDetails(bay);
+                    
                     quote.items.push(item);
                 });
             }
@@ -266,6 +269,118 @@
             quote.summary.grandTotal = quote.summary.subtotal + quote.summary.tax;
 
             return quote;
+        }
+
+        function extractPricingDetails(bay) {
+            const pricingData = {
+                dimensions: {
+                    width: null,
+                    height: null,
+                    widthMM: null,
+                    heightMM: null
+                },
+                glazing: {
+                    paneCount: null,
+                    paneType: 'Unknown',
+                    lowEType: 'Unknown',
+                    lowECount: 0,
+                    fullGlazingSpec: 'Unknown'
+                }
+            };
+
+            console.log('🔍 Extracting pricing details for bay:', bay.infoProperties?.[0]?.value);
+
+            // Extract dimensions from frame collections
+            if (bay.frameCollections && Array.isArray(bay.frameCollections)) {
+                bay.frameCollections.forEach((collection, collectionIndex) => {
+                    console.log(`📐 Collection ${collectionIndex + 1} dimensions:`, {
+                        width: collection.width,
+                        height: collection.height,
+                        segmentLength: collection.segmentLength
+                    });
+
+                    if (collection.width) {
+                        pricingData.dimensions.width = collection.width;
+                        pricingData.dimensions.widthMM = collection.width; // Already in MM
+                    }
+                    if (collection.height) {
+                        pricingData.dimensions.height = collection.height;
+                        pricingData.dimensions.heightMM = collection.height; // Already in MM
+                    }
+
+                    // Extract glazing details from frames
+                    if (collection.frames && Array.isArray(collection.frames)) {
+                        collection.frames.forEach((frame, frameIndex) => {
+                            console.log(`🖼️  Frame ${frameIndex + 1}:`, frame.product, frame.frameStyle);
+                            
+                            // Process apertures for glazing
+                            if (frame.apertures && Array.isArray(frame.apertures)) {
+                                frame.apertures.forEach((aperture, apertureIndex) => {
+                                    console.log(`🚪 Aperture ${apertureIndex + 1}:`, aperture.productType);
+                                    
+                                    // Process sash frames for glazing specs
+                                    if (aperture.sashFrames && Array.isArray(aperture.sashFrames)) {
+                                        aperture.sashFrames.forEach((sash, sashIndex) => {
+                                            console.log(`🔲 Sash ${sashIndex + 1}:`);
+                                            
+                                            if (sash.apertures && sash.apertures[0]) {
+                                                const glazingProduct = sash.apertures[0].product;
+                                                const spacerBar = sash.apertures[0].glazing?.spacerBar;
+                                                
+                                                console.log(`🔍 Raw glazing product: "${glazingProduct}"`);
+                                                console.log(`🔍 Spacer bar: "${spacerBar}"`);
+                                                
+                                                pricingData.glazing.fullGlazingSpec = glazingProduct;
+                                                
+                                                // Parse pane information from product string
+                                                if (glazingProduct) {
+                                                    // Extract pane count (Double-Pane, Triple-Pane, etc.)
+                                                    if (glazingProduct.toLowerCase().includes('double-pane')) {
+                                                        pricingData.glazing.paneCount = 2;
+                                                        pricingData.glazing.paneType = 'Double-Pane';
+                                                        console.log('✅ Found: Double-Pane (2 panes)');
+                                                    } else if (glazingProduct.toLowerCase().includes('triple-pane')) {
+                                                        pricingData.glazing.paneCount = 3;
+                                                        pricingData.glazing.paneType = 'Triple-Pane';
+                                                        console.log('✅ Found: Triple-Pane (3 panes)');
+                                                    } else if (glazingProduct.toLowerCase().includes('single-pane')) {
+                                                        pricingData.glazing.paneCount = 1;
+                                                        pricingData.glazing.paneType = 'Single-Pane';
+                                                        console.log('✅ Found: Single-Pane (1 pane)');
+                                                    }
+                                                    
+                                                    // Extract Low-E information
+                                                    const lowEMatches = glazingProduct.match(/(\d+)-?Low-?E/gi);
+                                                    if (lowEMatches) {
+                                                        const lowEMatch = lowEMatches[0];
+                                                        const lowENumber = lowEMatch.match(/(\d+)/);
+                                                        if (lowENumber) {
+                                                            pricingData.glazing.lowECount = parseInt(lowENumber[1]);
+                                                            pricingData.glazing.lowEType = lowEMatch;
+                                                            console.log(`✅ Found: ${lowEMatch} (${pricingData.glazing.lowECount} Low-E coatings)`);
+                                                        }
+                                                    } else if (glazingProduct.toLowerCase().includes('low-e')) {
+                                                        pricingData.glazing.lowECount = 1;
+                                                        pricingData.glazing.lowEType = 'Low-E';
+                                                        console.log('✅ Found: Low-E (1 Low-E coating)');
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            console.log('📊 Final pricing data extracted:', {
+                dimensions: pricingData.dimensions,
+                glazing: pricingData.glazing
+            });
+
+            return pricingData;
         }
 
 
